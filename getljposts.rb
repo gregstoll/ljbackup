@@ -321,7 +321,16 @@ def getComments()
     while (highestCommentDownloaded < maxId) do
         oldHighestCommentDownloaded = highestCommentDownloaded
         resp = getPageWithRetry(APICommentsPath + "?get=comment_body&startid=#{ highestCommentDownloaded + 1}")
-        commentDoc = REXML::Document.new(resp.body)
+        #File.open('TEMPTODO', 'w') do |aFile|
+        #    aFile.write(resp.body)
+        #end
+        # We think this is in UTF-8, but some old entries may be in some
+        # codepage. String's encode method won't replace invalid characters
+        # if the source and dest encoding are the same, so go back and forth
+        # to UTF-16.
+        respBody = resp.body.encode('utf-16', 'utf-8', {:invalid => :replace})
+        respBody.encode!('utf-8', 'utf-16')
+        commentDoc = REXML::Document.new(respBody)
         commentDoc.elements.each('//comments/comment') do |elem|
             id = elem.attributes['id'].to_i
             if (id > highestCommentDownloaded) then highestCommentDownloaded = id end
