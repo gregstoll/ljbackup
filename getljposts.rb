@@ -1,4 +1,4 @@
-#!/usr/bin/ruby -w
+#!/usr/bin/ruby1.9.1 -w
 # encoding: utf-8
 
 require 'xmlrpc/client'
@@ -27,6 +27,8 @@ class String
 end
 
 module LJBackup
+
+AuthenticationClear = false
 
 LJAPIPrefix = "LJ.XMLRPC."
 ClientName = "Ruby-gregLJBackup/0.0.2"
@@ -373,9 +375,16 @@ def getComments()
 end
 
 def doMethod(methodName, *args)
-    result = callMethod("getchallenge")
-    challenge = result['challenge']
-    params = getAuthHash(challenge)
+    if (AuthenticationClear)
+        params = {:username => @username, :hpassword => Digest::MD5.hexdigest(@password)}
+        #params = {:username => @username, :password => @password}
+    else
+        result = callMethod("getchallenge")
+        #pp result
+        challenge = result['challenge']
+        params = getAuthHash(challenge)
+    end
+    #pp params
     if (args.length > 0)
         params.update(*args)
     end
@@ -388,6 +397,7 @@ def callMethod(methodName, *args)
     recreatedServer = false
     begin
         sleep(APISleepTime)
+        #@server.http_header_extra = {'Accept-Encoding': 'identity'}
         return @server.call(LJAPIPrefix + methodName, *args)
     rescue Exception
         if (firstTime)
@@ -403,7 +413,7 @@ def callMethod(methodName, *args)
             firstTime = false
             retry
         else
-            @logger.logError("Error calling LJ method '#{ methodName }'. Check that your password is correct. If it is, wait a bit and try again.", true)
+            @logger.logError("Error calling LJ method '#{ methodName }' - got exception #{ $! }. Check that your password is correct. If it is, wait a bit and try again.", true)
         end
     end
 end
@@ -1205,7 +1215,7 @@ def savePageWithComments(post)
     postInfo['numComments'] = commentList.length
     postInfo['commentParentMap'] = parentMap
     wordRE = Regexp.new('\w')
-    tempPost = post['event'].dup
+    tempPost = post['event'].to_s.dup
     # For word counting, collapse lj user= to one word...
     ljUserRE = Regexp.new('<lj user="(.*?)".*?>', Regexp::IGNORECASE)
     tempPost.gsub!(ljUserRE, '\1')
@@ -1215,7 +1225,7 @@ def savePageWithComments(post)
     postInfo['numWords'] = tempPost.split(/\s+/).select {|x| wordRE.match(x) != nil }.length
     postInfo['subject'] = tidyUpSubject(post['subject'].to_s.force_encoding("UTF-8"))
     postInfo['tags'] = nil
-    postInfo['event'] = post['event']
+    postInfo['event'] = post['event'].to_s
     if (post.include?('props'))
         if (post['props'].include?('current_moodid'))
             postInfo['moodid'] = post['props']['current_moodid']
