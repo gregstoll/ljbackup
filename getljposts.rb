@@ -171,7 +171,7 @@ def getLJUserString(user)
     if (user == "anonymous")
         return "anonymous"
     else
-        return "<a href=\"http://#{ user }.livejournal.com\">#{ user }</a>"
+        return "<a href=\"https://#{ user }.livejournal.com\">#{ user }</a>"
     end
 end
 
@@ -185,7 +185,9 @@ end
 
 def getPageWithRetry(path, headers={})
     ljsession = getLJSession()
-    ljsite = Net::HTTP.new("www.livejournal.com")
+    siteUri = URI.parse("https://www.livejournal.com")
+    ljsite = Net::HTTP.new(siteUri.host, siteUri.port)
+    ljsite.use_ssl = true
     sleep(APISleepTime + @delay)
     # Try to handle transient errors
     numAttempts = 1
@@ -232,7 +234,7 @@ def writePostMain(aFile, postInfo, pathToRoot, doComments=false)
     if (postInfo.include?('location'))
         aFile.write("Location: #{ postInfo['location'] }<br>\n")
     end
-    aFile.write("Posted on <a href=\"http://#{ @username }.livejournal.com/#{ postInfo['linkId'] }.html\">#{ postInfo['date'] }</a>\n")
+    aFile.write("Posted on <a href=\"https://#{ @username }.livejournal.com/#{ postInfo['linkId'] }.html\">#{ postInfo['date'] }</a>\n")
     if (postInfo['tags'] != nil)
         aFile.write("<br>Tags: ")
         postInfo['tags'].each {|tag| aFile.write("<a href=\"#{ pathToRoot}tags/#{ tag }.html\">#{ tag }</a> ")}
@@ -295,8 +297,11 @@ def getComments()
     while (highestIdSeen < maxId) do
         origMaxId = maxId
         @logger.logText("Getting comment page with startId #{ maxId + 1} (highestIdSeen=#{ highestIdSeen })", false)
+        #commentsPath = APICommentsPath + "?get=comment_meta&startid=#{ maxId + 1}"
+        #@logger.logText("getting path #{ commentsPath }", false)
         resp = getPageWithRetry(APICommentsPath + "?get=comment_meta&startid=#{ maxId + 1}")
         @logger.logText("Got comment page with startId #{ maxId + 1} (highestIdSeen=#{ highestIdSeen })", false)
+        #@logger.logText("TODO: comment page is #{ resp.body }", false)
         commentDoc = REXML::Document.new(resp.body)
         if maxId == -1
             commentDoc.elements.each("/livejournal/maxid") do |elem|
@@ -445,7 +450,7 @@ def makeEmptyDirHtml(dirName)
 end
 
 def createServer()
-    @server = XMLRPC::Client.new2("http://www.livejournal.com/interface/xmlrpc")
+    @server = XMLRPC::Client.new2("https://www.livejournal.com/interface/xmlrpc")
 end
 
 def sum(list)
