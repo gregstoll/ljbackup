@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import cgi, sys, hashlib, tempfile, urllib, shutil, os
+import cgi, sys, hashlib, tempfile, urllib.request, urllib.parse, urllib.error, shutil, os
 
 def deleteSession(sessionPath):
     try:
@@ -38,8 +38,8 @@ try:
         for line in f:
             l = line.strip()
             equalsIndex = l.find('=')
-            key = urllib.unquote_plus(l[:equalsIndex])
-            valueString = urllib.unquote_plus(l[equalsIndex+1:])
+            key = urllib.parse.unquote_plus(l[:equalsIndex])
+            valueString = urllib.parse.unquote_plus(l[equalsIndex+1:])
             if valueString == 'BT':
                 value = True
             elif valueString == 'BF':
@@ -48,8 +48,8 @@ try:
                 value = valueString[1:]
             data[key] = value
 except:
-    print "Content-type: text/plain\n"
-    print "11Error getting session - please try again.  If this continues to happen, contact Greg (reachable from www.gregstoll.com)";
+    print("Content-type: text/plain\n")
+    print("11Error getting session - please try again.  If this continues to happen, contact Greg (reachable from www.gregstoll.com)");
     sys.exit(0)
 
 doneCode = "1" if data['done'] else "0"
@@ -62,5 +62,5 @@ if (data['error']):
         shutil.rmtree(dirName)
     deleteSession(path)
 
-print "Content-type: text/plain\n"
-print doneCode + errorCode + status
+print("Content-type: text/plain\n")
+print(doneCode + errorCode + status)
